@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}{{ profile.name }} — Settings{% endblock %}
+{% block content %}
+
+{% if msg %}<div class="msg">{{ msg }}</div>{% endif %}
+
+{% for which, f in files.items() %}
+<div class="card">
+  <h3>{{ f.label }}</h3>
+  <p class="muted">
+    {% if which == 'matching' %}
+      Target titles, seniority, must-have skills, and dealbreakers
+      (excluded titles/keywords/companies). This is the checklist half of the match score.
+    {% else %}
+      Search terms, countries, rows per table, match threshold, and which
+      sources are on. Changes apply on the next run.
+    {% endif %}
+  </p>
+  <form method="post" action="{{ url_for('settings') }}">
+    <input type="hidden" name="which" value="{{ which }}">
+    <textarea class="code" name="content" spellcheck="false">{{ f.content }}</textarea>
+    <div style="margin-top:10px"><button class="btn primary">Save {{ f.label }}</button></div>
+  </form>
+</div>
+{% endfor %}
+
+<p class="muted">YAML is validated before saving — if it's malformed, the file is left unchanged
+  and you'll see an error above. After saving, hit <b>Run now</b> to apply immediately.</p>
+
+{% endblock %}

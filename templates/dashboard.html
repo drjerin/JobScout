@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}{{ profile.name }} — Dashboard{% endblock %}
+{% block content %}
+
+<form class="controls" method="get" action="{{ url_for('dashboard') }}">
+  <input type="search" name="q" value="{{ search }}" placeholder="Search title or company…">
+  <select name="status" onchange="this.form.submit()">
+    {% for val,label in [('new','New'),('applied','Applied'),('hidden','Hidden'),('all','All')] %}
+      <option value="{{val}}" {{ 'selected' if status==val else '' }}>{{label}}</option>
+    {% endfor %}
+  </select>
+  <select name="sort" onchange="this.form.submit()">
+    {% for val,label in [('match','Sort: Match %'),('recent','Sort: Most recent'),('company','Sort: Company')] %}
+      <option value="{{val}}" {{ 'selected' if sort==val else '' }}>{{label}}</option>
+    {% endfor %}
+  </select>
+  <button class="btn">Apply</button>
+</form>
+
+{% for label, rows in sections %}
+{% set country_name = countries[loop.index0] %}
+{% set country_counts = counts.get(country_name, {}) %}
+<section class="country">
+  <h2>{{ label }}
+    <span class="count">{{ rows|length }} shown</span>
+    {% if country_counts.new %}<span class="count">{{ country_counts.new }} new</span>{% endif %}
+    {% if country_counts.applied %}<span class="count applied">{{ country_counts.applied }} applied</span>{% endif %}
+    {% if country_counts.hidden %}<span class="count hidden">{{ country_counts.hidden }} hidden</span>{% endif %}
+  </h2>
+  {% if rows %}
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Match</th><th>Title</th><th>Company</th><th>Location</th>
+          <th>Posted</th><th>Source</th><th>Fit notes</th><th>Apply</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for r in rows %}
+        <tr data-id="{{ r.id }}">
+          <td><span class="pill" style="background:{{ r.color }}">{{ r.match_int }}%</span></td>
+          <td class="title">{{ r.title }}{% if r.why %}<div class="why">{{ r.why }}</div>{% endif %}</td>
+          <td>{{ r.company }}</td>
+          <td class="muted">{{ r.location }}</td>
+          <td class="muted nowrap">{{ r.posted }}</td>
+          <td><span class="badge">{{ r.source }}</span></td>
+          <td class="notes">{{ r.notes_str }}</td>
+          <td><a class="apply" href="{{ r.url }}" target="_blank" rel="noopener">Apply ↗</a></td>
+          <td class="actions">
+            {% if r.status == 'applied' %}
+              <button class="mini ghost" onclick="setStatus('{{ r.id }}','new',this)">Undo applied</button>
+            {% else %}
+              <button class="mini" onclick="setStatus('{{ r.id }}','applied',this)">✓ Applied</button>
+            {% endif %}
+            {% if r.status == 'hidden' %}
+              <button class="mini ghost" onclick="setStatus('{{ r.id }}','new',this)">Unhide</button>
+            {% else %}
+              <button class="mini ghost" onclick="setStatus('{{ r.id }}','hidden',this)">Hide</button>
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    <p class="empty">No jobs in this view. Try “All”, clear the search, or hit <b>Run now</b>.</p>
+  {% endif %}
+</section>
+{% endfor %}
+
+{% if not sections %}
+<section class="country">
+  <h2>No countries enabled</h2>
+  <p class="empty">Open <a href="{{ url_for('settings') }}">Settings</a> and enable at least one country in <code>config.yaml</code>.</p>
+</section>
+{% endif %}
+
+<details class="logbox">
+  <summary>Last run log</summary>
+  <pre id="runLog">{{ run.log_tail or '(no run yet in this UI session)' }}</pre>
+</details>
+
+{% endblock %}
+{% block scripts %}
+<script>
+  async function setStatus(id, status, btn){
+    btn.disabled = true;
+    try{
+      const r = await fetch('/api/status', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({id, status})
+      });
+      const j = await r.json();
+      if(j.ok){
+        const row = document.querySelector(`tr[data-id="${CSS.escape(id)}"]`);
+        if(row){ row.style.opacity=.3; setTimeout(()=>row.remove(), 220); }
+      } else { btn.disabled=false; }
+    }catch(e){ btn.disabled=false; }
+  }
+</script>
+{% endblock %}

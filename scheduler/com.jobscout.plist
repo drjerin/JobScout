@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  macOS LaunchAgent — runs the scout at 00:20, 06:20, 12:20, 18:20 (offset off
+  the hour on purpose). If the laptop was asleep at a scheduled time, launchd
+  will fire the job as soon as it wakes.
+
+  REPLACE __PROJECT_DIR__ with the absolute path to this project. Easier:
+      python setup.py install-scheduler
+  will do the substitution + install for you.
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.jobscout</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>__PROJECT_DIR__/scheduler/run.sh</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>__PROJECT_DIR__</string>
+
+    <key>StartCalendarInterval</key>
+    <array>
+        <dict><key>Hour</key><integer>0</integer><key>Minute</key><integer>20</integer></dict>
+        <dict><key>Hour</key><integer>6</integer><key>Minute</key><integer>20</integer></dict>
+        <dict><key>Hour</key><integer>12</integer><key>Minute</key><integer>20</integer></dict>
+        <dict><key>Hour</key><integer>18</integer><key>Minute</key><integer>20</integer></dict>
+    </array>
+
+    <!-- Catch up on missed runs after the laptop wakes / boots. -->
+    <key>RunAtLoad</key>
+    <false/>
+
+    <key>StandardOutPath</key>
+    <string>__PROJECT_DIR__/state/launchd.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>__PROJECT_DIR__/state/launchd.err.log</string>
+</dict>
+</plist>

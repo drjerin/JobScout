@@ -1,0 +1,90 @@
+# ── Job Scout configuration ────────────────────────────────────────────────
+# Edit freely. No restart needed; changes apply on the next run.
+
+# Display metadata (shown in the email subject/heading and web UI).
+profile:
+  # Free-form label for the person running the scout (used in headings).
+  name: "Job Scout"
+  # The role you're searching for (used in the email subject line only).
+  role: "HR Business Partner"
+
+# How many rows to show per country table in the email digest.
+rows_per_table: 12
+
+# Only email jobs at or above this overall match %. Lower = more results.
+min_match_percent: 55
+
+# Weighting of the two halves of the match score (should sum to 1.0).
+#   resume_weight   -> how much the semantic resume<->job similarity matters
+#   matching_weight -> how much the matching.yaml checklist matters
+weights:
+  resume_weight: 0.5
+  matching_weight: 0.5
+
+# Semantic-similarity calibration (advanced; usually leave as-is).
+# Cosine similarities from the model are mapped to 0-100 by treating
+# `sim_floor` as 0% and `sim_ceiling` as 100%.
+similarity:
+  sim_floor: 0.20
+  sim_ceiling: 0.80
+
+# Only consider jobs posted within this many hours (keeps the digest fresh).
+hours_old: 72
+
+# ── What to search for ─────────────────────────────────────────────────────
+# search_terms are used across all sources; locations are per-country below.
+search_terms:
+  - "HR Business Partner"
+  - "HRBP"
+  - "People Partner"
+  - "Human Resources Business Partner"
+
+# ── Countries ──────────────────────────────────────────────────────────────
+# Add / remove / rename freely. Any country with `enabled: false` is skipped.
+# `emoji` is optional (used in the email + dashboard section headings).
+# `adzuna_country` = Adzuna's two-letter code, or null if Adzuna doesn't cover it.
+# `indeed_country` = the label JobSpy uses for Indeed/LinkedIn country routing.
+countries:
+  India:
+    enabled: true
+    emoji: "🇮🇳"
+    locations:
+      - "Bengaluru, India"
+      - "Mumbai, India"
+      - "Delhi, India"
+      - "Hyderabad, India"
+      - "Pune, India"
+    adzuna_country: "in"
+    indeed_country: "India"
+  Qatar:
+    enabled: true
+    emoji: "🇶🇦"
+    locations:
+      - "Doha, Qatar"
+    adzuna_country: null      # Adzuna does NOT cover Qatar
+    indeed_country: "Qatar"
+
+# ── Sources: turn each on/off ──────────────────────────────────────────────
+# JobSpy sources scrape from THIS machine's IP — run on a laptop with a home
+# IP (cloud IPs get blocked). Naukri is auto-used only for India-style regions,
+# Bayt only for Gulf regions; the rest apply to all countries.
+sources:
+  jobspy:
+    enabled: true
+    sites: ["indeed", "naukri", "bayt", "linkedin"]  # remove any you don't want
+    results_wanted: 25                # per site per query
+    linkedin_fetch_description: false # true = full LinkedIn text, higher block risk
+    max_linkedin_pages: 5             # keep LinkedIn volume low
+  jooble:
+    enabled: true                     # free API, broad country coverage
+  adzuna:
+    enabled: true                     # free API, ~20 countries
+  serpapi_google:
+    enabled: false                    # optional, 250 searches/month free
+    max_searches_per_run: 4           # protect the monthly quota
+
+# ── Web UI ─────────────────────────────────────────────────────────────────
+web:
+  # Bind address for `python app.py`. 127.0.0.1 keeps it local-only.
+  host: "127.0.0.1"
+  port: 8000

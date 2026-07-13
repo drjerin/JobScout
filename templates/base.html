@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}{{ profile.name }}{% endblock %}</title>
+<style>
+  :root{
+    --bg:#f6f7f9; --panel:#ffffff; --ink:#1a1d23; --muted:#6b7280;
+    --line:#e5e7eb; --accent:#2563eb; --badge:#eef2f7; --hover:#f2f5f9;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#0f1115; --panel:#171a21; --ink:#e6e8ee; --muted:#95a0b3;
+           --line:#262b36; --accent:#5b8cff; --badge:#20252f; --hover:#1d222c; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  a{color:var(--accent);text-decoration:none}
+  .topbar{position:sticky;top:0;z-index:10;display:flex;align-items:center;gap:18px;
+    padding:12px 20px;background:var(--panel);border-bottom:1px solid var(--line);
+    flex-wrap:wrap;}
+  .brand{font-weight:700;font-size:16px}
+  .brand .sub{font-weight:400;color:var(--muted);font-size:12px;margin-left:6px}
+  nav{margin-left:auto;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  nav a{color:var(--muted);font-weight:600;padding:4px 2px}
+  nav a.active{color:var(--ink);border-bottom:2px solid var(--accent)}
+  .btn{cursor:pointer;border:1px solid var(--line);background:var(--panel);color:var(--ink);
+    border-radius:8px;padding:7px 12px;font-weight:600;font-size:13px}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn:disabled{opacity:.5;cursor:default}
+  .runstatus{color:var(--muted);font-size:12px;min-width:60px}
+  main{max-width:1100px;margin:0 auto;padding:20px}
+  .controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+  .controls input[type=search],.controls select{
+    background:var(--panel);color:var(--ink);border:1px solid var(--line);
+    border-radius:8px;padding:8px 10px;font-size:13px}
+  .controls input[type=search]{min-width:240px;flex:1}
+  section.country{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:14px 16px;margin-bottom:20px}
+  section.country h2{margin:0 0 10px;font-size:16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .count{background:var(--badge);color:var(--muted);border-radius:999px;
+    padding:2px 9px;font-size:12px;font-weight:600}
+  .count.applied{color:#15803d;background:rgba(21,128,61,.12)}
+  .count.hidden{color:var(--muted)}
+  .tablewrap{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;color:var(--muted);font-weight:600;padding:8px;border-bottom:1px solid var(--line);white-space:nowrap}
+  td{padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+  tr:hover td{background:var(--hover)}
+  .pill{display:inline-block;color:#fff;border-radius:999px;padding:2px 9px;font-weight:700;font-size:12px;white-space:nowrap}
+  .title{font-weight:600;min-width:180px}
+  .why{font-weight:400;color:var(--muted);font-style:italic;margin-top:3px;font-size:12px}
+  .muted{color:var(--muted)} .nowrap{white-space:nowrap}
+  .badge{background:var(--badge);color:var(--muted);border-radius:6px;padding:2px 8px;font-size:12px;white-space:nowrap}
+  .notes{color:var(--ink);font-size:12px;min-width:150px}
+  .apply{font-weight:700;white-space:nowrap}
+  .actions{white-space:nowrap}
+  .mini{cursor:pointer;border:1px solid var(--line);background:var(--panel);color:var(--ink);
+    border-radius:6px;padding:4px 8px;font-size:12px;font-weight:600;margin-left:4px}
+  .mini.ghost{color:var(--muted)}
+  .empty{color:var(--muted);padding:8px}
+  textarea.code{width:100%;min-height:320px;background:var(--bg);color:var(--ink);
+    border:1px solid var(--line);border-radius:10px;padding:12px;
+    font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  .msg{background:var(--badge);border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin-bottom:14px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:20px}
+  h3{margin:0 0 10px}
+  details.logbox{margin-top:8px;background:var(--badge);border:1px solid var(--line);border-radius:8px;padding:8px 12px}
+  details.logbox summary{cursor:pointer;color:var(--muted);font-size:12px}
+  details.logbox pre{margin:8px 0 0;max-height:260px;overflow:auto;font-size:11px;
+    background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px;white-space:pre-wrap}
+  @media (max-width:640px){
+    .controls input[type=search]{min-width:0;width:100%}
+    .brand .sub{display:block;margin-left:0}
+    nav{margin-left:0;width:100%;justify-content:space-between}
+  }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">📮 {{ profile.name }}
+    {% if profile.role %}<span class="sub">{{ profile.role }}</span>{% endif %}
+  </div>
+  <nav>
+    <a href="{{ url_for('dashboard') }}" class="{{ 'active' if request.endpoint=='dashboard' else '' }}">Dashboard</a>
+    <a href="{{ url_for('settings') }}" class="{{ 'active' if request.endpoint=='settings' else '' }}">Settings</a>
+    <button id="runBtn" class="btn primary">↻ Run now</button>
+    <span id="runStatus" class="runstatus"></span>
+  </nav>
+</header>
+<main>{% block content %}{% endblock %}</main>
+<script>
+  const runBtn=document.getElementById('runBtn'), runStatus=document.getElementById('runStatus');
+  const runLog=document.getElementById('runLog');
+  let started=false;
+  async function poll(){
+    try{
+      const s=await (await fetch('/api/run-status')).json();
+      if(s.running){ runStatus.textContent='running…'; runBtn.disabled=true; started=true; setTimeout(poll,2000); }
+      else{
+        runBtn.disabled=false;
+        runStatus.textContent = (s.last && s.last!=='idle') ? s.last : '';
+        if(runLog && s.log_tail){ runLog.textContent = s.log_tail; }
+        if(started){ started=false; if(String(s.last).startsWith('ok')){ setTimeout(()=>location.reload(),500); } }
+      }
+    }catch(e){ /* server not ready */ }
+  }
+  runBtn?.addEventListener('click', async()=>{
+    started=true; runBtn.disabled=true; runStatus.textContent='starting…';
+    await fetch('/api/run',{method:'POST'}); poll();
+  });
+  poll();
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

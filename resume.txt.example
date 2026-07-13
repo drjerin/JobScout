@@ -1,0 +1,10 @@
+PASTE THE RESUME HERE (plain text).
+
+Replace this entire file with the full text of your resume — summary,
+experience, skills, education, everything. The scout compares each job
+description against this text to compute the semantic "resume fit" half of
+the match score, so more detail = better matching.
+
+Alternative: drop `resume.pdf` or `resume.docx` into the project root instead;
+the scout will read whichever it finds first (pdf/docx need the optional
+`pypdf` / `python-docx` packages installed).
