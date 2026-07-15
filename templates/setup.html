@@ -1,0 +1,424 @@
+{% extends "base.html" %}
+{% block title %}Job Scout — Setup{% endblock %}
+{% block content %}
+
+<style>
+  .wizard{max-width:820px;margin:0 auto}
+  .wizardnav{display:flex;gap:6px;margin-bottom:24px;flex-wrap:wrap}
+  .wizardnav .step{flex:1;min-width:120px;padding:10px 12px;background:var(--panel);
+    border:1px solid var(--line);border-radius:10px;font-size:12px;color:var(--muted);
+    text-align:center;font-weight:600;position:relative}
+  .wizardnav .step.active{color:var(--ink);border-color:var(--accent)}
+  .wizardnav .step.done{color:#15803d;border-color:rgba(21,128,61,.4);
+    background:rgba(21,128,61,.08)}
+  .wizardnav .step .idx{display:inline-block;width:20px;height:20px;line-height:20px;
+    text-align:center;border-radius:50%;background:var(--badge);margin-right:6px;font-size:11px}
+  .wizardnav .step.active .idx{background:var(--accent);color:#fff}
+  .wizardnav .step.done .idx{background:#15803d;color:#fff}
+  .field{margin-bottom:16px}
+  .field label{display:block;font-weight:600;margin-bottom:6px}
+  .field input[type=text],.field input[type=email],.field input[type=password]{
+    width:100%;padding:9px 11px;background:var(--panel);color:var(--ink);
+    border:1px solid var(--line);border-radius:8px;font-size:14px}
+  .field small{color:var(--muted);display:block;margin-top:4px;font-size:12px}
+  .row{display:flex;gap:12px}.row>*{flex:1}
+  .wizfooter{margin-top:20px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+  .wizfooter .msg{flex:1;color:#b45309;font-size:13px;min-height:20px}
+  .country-card{background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    padding:12px 14px;margin-bottom:10px}
+  .country-head{display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none}
+  .country-head input[type=checkbox]{transform:scale(1.15)}
+  .country-head .flag{font-size:20px}
+  .country-head .name{font-weight:600}
+  .country-head .picked{margin-left:auto;color:var(--muted);font-size:12px}
+  .cities{display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--line);
+    flex-wrap:wrap;gap:6px}
+  .cities.open{display:flex}
+  .chip{display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border-radius:999px;
+    background:var(--badge);color:var(--ink);border:1px solid transparent;cursor:pointer;
+    font-size:12px;font-weight:600}
+  .chip.on{background:var(--accent);color:#fff}
+  .cities input.custom{flex:1;min-width:140px;padding:6px 10px;background:var(--bg);
+    color:var(--ink);border:1px solid var(--line);border-radius:8px;font-size:12px}
+  .dropzone{border:2px dashed var(--line);border-radius:12px;padding:36px 20px;text-align:center;
+    background:var(--panel);cursor:pointer;transition:.15s}
+  .dropzone.drag{border-color:var(--accent);background:rgba(37,99,235,.06)}
+  .dropzone .big{font-size:14px;font-weight:600;margin-bottom:6px}
+  .dropzone .small{color:var(--muted);font-size:12px}
+  .resume-status{margin-top:12px;padding:10px 14px;border-radius:8px;background:var(--badge);
+    color:var(--ink);font-size:13px}
+  .resume-status.ok{background:rgba(21,128,61,.12);color:#15803d}
+  .resume-status.err{background:rgba(180,83,9,.12);color:#b45309}
+  h2{margin:0 0 6px}
+  .step-desc{color:var(--muted);margin:0 0 20px;font-size:13px}
+</style>
+
+<div class="wizard">
+  <div class="wizardnav">
+    {% for s in steps if s != 'done' %}
+      {% set idx = loop.index %}
+      <div class="step {{ 'active' if step==s else ('done' if steps.index(step) > steps.index(s) else '') }}">
+        <span class="idx">{{ idx }}</span>{{ s|capitalize }}
+      </div>
+    {% endfor %}
+  </div>
+
+  {% if step == 'profile' %}
+    <div class="card">
+      <h2>Tell us about your search</h2>
+      <p class="step-desc">Used in the email subject line and dashboard headings.
+        The role also seeds your search terms and matching target titles.</p>
+
+      <div class="field">
+        <label for="p_name">Your name (or a nickname)</label>
+        <input id="p_name" type="text" value="{{ profile.name }}"
+               placeholder="e.g. Jane Doe">
+        <small>Appears in the email subject: <em>Jane Doe · Product Manager · …</em></small>
+      </div>
+      <div class="field">
+        <label for="p_role">Target role</label>
+        <input id="p_role" type="text" value="{{ profile.role }}"
+               placeholder="e.g. Product Manager, Data Analyst, HR Business Partner">
+        <small>The scout will search for this exact phrase across all sources.
+          You can add synonyms later in Settings.</small>
+      </div>
+      <div class="wizfooter">
+        <div class="msg" id="p_msg"></div>
+        <button class="btn primary" id="p_save">Continue →</button>
+      </div>
+    </div>
+
+    <script>
+      document.getElementById('p_save').onclick = async () => {
+        const name = document.getElementById('p_name').value.trim();
+        const role = document.getElementById('p_role').value.trim();
+        const msg = document.getElementById('p_msg');
+        msg.textContent = '';
+        const r = await fetch('/api/setup/profile', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({name, role})
+        });
+        const j = await r.json();
+        if (j.ok) { location.href = '/setup?step=' + j.next; }
+        else { msg.textContent = j.error || 'Something went wrong'; }
+      };
+    </script>
+
+  {% elif step == 'locations' %}
+    <div class="card">
+      <h2>Where do you want to work?</h2>
+      <p class="step-desc">Pick one or more countries, then choose cities within each.
+        Type a custom city if yours isn't listed. Fewer picks = tighter matches.</p>
+
+      <div id="picker">
+        {% for name, meta in countries_catalog.items() %}
+          {% set current = countries_current.get(name, []) %}
+          {% set checked = current|length > 0 %}
+          <div class="country-card" data-country="{{ name }}">
+            <label class="country-head">
+              <input type="checkbox" class="cc" {{ 'checked' if checked else '' }}>
+              <span class="flag">{{ meta.emoji }}</span>
+              <span class="name">{{ name }}</span>
+              <span class="picked" data-picked>{{ current|length }} cities</span>
+            </label>
+            <div class="cities {{ 'open' if checked else '' }}">
+              {% for city in meta.cities %}
+                <span class="chip {{ 'on' if city in current else '' }}"
+                      data-city="{{ city }}">{{ city }}</span>
+              {% endfor %}
+              {% for city in current if city not in meta.cities %}
+                <span class="chip on" data-city="{{ city }}">{{ city }}</span>
+              {% endfor %}
+              <input class="custom" type="text" placeholder="Add city + Enter">
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+
+      <div class="wizfooter">
+        <div class="msg" id="l_msg"></div>
+        <div>
+          <a class="btn" href="/setup?step=profile">← Back</a>
+          <button class="btn primary" id="l_save">Continue →</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const picker = document.getElementById('picker');
+      picker.querySelectorAll('.country-card').forEach(card => {
+        const cb = card.querySelector('.cc');
+        const cities = card.querySelector('.cities');
+        const picked = card.querySelector('[data-picked]');
+        const custom = card.querySelector('input.custom');
+
+        const updatePicked = () => {
+          const n = card.querySelectorAll('.chip.on').length;
+          picked.textContent = n + ' cit' + (n === 1 ? 'y' : 'ies');
+        };
+        updatePicked();
+
+        cb.addEventListener('change', () => {
+          if (cb.checked) { cities.classList.add('open'); }
+          else {
+            cities.classList.remove('open');
+            card.querySelectorAll('.chip.on').forEach(c => c.classList.remove('on'));
+            updatePicked();
+          }
+        });
+
+        card.querySelectorAll('.chip').forEach(chip => {
+          chip.addEventListener('click', () => {
+            if (!cb.checked) { cb.checked = true; cities.classList.add('open'); }
+            chip.classList.toggle('on');
+            updatePicked();
+          });
+        });
+
+        custom.addEventListener('keydown', (e) => {
+          if (e.key !== 'Enter') return;
+          e.preventDefault();
+          const v = custom.value.trim();
+          if (!v) return;
+          const existing = Array.from(card.querySelectorAll('.chip'))
+            .find(c => c.dataset.city.toLowerCase() === v.toLowerCase());
+          if (existing) { existing.classList.add('on'); }
+          else {
+            const chip = document.createElement('span');
+            chip.className = 'chip on';
+            chip.dataset.city = v;
+            chip.textContent = v;
+            chip.addEventListener('click', () => { chip.classList.toggle('on'); updatePicked(); });
+            custom.before(chip);
+          }
+          if (!cb.checked) { cb.checked = true; cities.classList.add('open'); }
+          custom.value = '';
+          updatePicked();
+        });
+      });
+
+      document.getElementById('l_save').onclick = async () => {
+        const selections = {};
+        picker.querySelectorAll('.country-card').forEach(card => {
+          const cb = card.querySelector('.cc');
+          if (!cb.checked) return;
+          const cities = Array.from(card.querySelectorAll('.chip.on')).map(c => c.dataset.city);
+          if (cities.length) selections[card.dataset.country] = cities;
+        });
+        const msg = document.getElementById('l_msg');
+        msg.textContent = '';
+        const r = await fetch('/api/setup/locations', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({selections})
+        });
+        const j = await r.json();
+        if (j.ok) { location.href = '/setup?step=' + j.next; }
+        else { msg.textContent = j.error || 'Pick at least one city'; }
+      };
+    </script>
+
+  {% elif step == 'resume' %}
+    <div class="card">
+      <h2>Upload your resume</h2>
+      <p class="step-desc">Accepts .pdf, .docx or .txt. The scout compares each job's text
+        against yours to compute the semantic "resume fit" half of the match score,
+        so more detail = better matching.</p>
+
+      <div class="dropzone" id="dz">
+        <div class="big">Drop your resume here, or click to browse</div>
+        <div class="small">.pdf · .docx · .txt · up to 8 MB</div>
+        <input id="rf" type="file" accept=".pdf,.docx,.txt" hidden>
+      </div>
+
+      <div class="resume-status {{ 'ok' if resume.present else '' }}" id="rstatus">
+        {% if resume.present %}
+          ✓ Current resume: <b>{{ resume.filename }}</b> ({{ resume.chars }} chars)
+        {% else %}
+          No usable resume yet — upload one to continue.
+        {% endif %}
+      </div>
+
+      <div class="wizfooter">
+        <div class="msg" id="r_msg"></div>
+        <div>
+          <a class="btn" href="/setup?step=locations">← Back</a>
+          <button class="btn primary" id="r_next" {{ '' if resume.present else 'disabled' }}>
+            Continue →
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const dz = document.getElementById('dz');
+      const rf = document.getElementById('rf');
+      const rstatus = document.getElementById('rstatus');
+      const rmsg = document.getElementById('r_msg');
+      const rnext = document.getElementById('r_next');
+
+      dz.addEventListener('click', () => rf.click());
+      ['dragover','dragenter'].forEach(ev => dz.addEventListener(ev, e => {
+        e.preventDefault(); dz.classList.add('drag');
+      }));
+      ['dragleave','drop'].forEach(ev => dz.addEventListener(ev, e => {
+        e.preventDefault(); dz.classList.remove('drag');
+      }));
+      dz.addEventListener('drop', e => {
+        if (e.dataTransfer.files.length) upload(e.dataTransfer.files[0]);
+      });
+      rf.addEventListener('change', () => { if (rf.files.length) upload(rf.files[0]); });
+
+      async function upload(file){
+        rmsg.textContent = '';
+        rstatus.className = 'resume-status';
+        rstatus.textContent = 'Uploading ' + file.name + '…';
+        const fd = new FormData();
+        fd.append('resume', file);
+        try {
+          const r = await fetch('/api/setup/resume', {method:'POST', body: fd});
+          const j = await r.json();
+          if (j.ok) {
+            rstatus.className = 'resume-status ok';
+            rstatus.innerHTML = '✓ Loaded <b>' + j.filename + '</b> (' + j.chars + ' chars)';
+            rnext.disabled = false;
+            rnext.dataset.next = j.next;
+          } else {
+            rstatus.className = 'resume-status err';
+            rstatus.textContent = j.error || 'Upload failed';
+          }
+        } catch (e) {
+          rstatus.className = 'resume-status err';
+          rstatus.textContent = 'Upload failed: ' + e;
+        }
+      }
+
+      rnext.addEventListener('click', () => {
+        location.href = '/setup?step=' + (rnext.dataset.next || 'credentials');
+      });
+    </script>
+
+  {% elif step == 'credentials' %}
+    <div class="card">
+      <h2>Email & API keys</h2>
+      <p class="step-desc">Gmail is required (that's where the digest is sent from and to).
+        Everything else is optional — enable the ones you want to use.</p>
+
+      <h3 style="margin-top:14px;font-size:14px">Gmail (required)</h3>
+      <p class="muted" style="font-size:12px;margin:0 0 12px">
+        Turn on 2-Step Verification on your Google account, then create an
+        <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener">
+        App Password</a>. Paste the 16-character code here — spaces are ignored.
+      </p>
+
+      <div class="row">
+        <div class="field">
+          <label for="gu">Gmail address</label>
+          <input id="gu" type="email" value="{{ env.get('GMAIL_USER','') }}"
+                 placeholder="you@gmail.com">
+        </div>
+        <div class="field">
+          <label for="to">Send digest to</label>
+          <input id="to" type="email" value="{{ env.get('TO_EMAIL','') }}"
+                 placeholder="you@gmail.com (defaults to sender)">
+        </div>
+      </div>
+      <div class="field">
+        <label for="gp">Gmail App Password</label>
+        <input id="gp" type="password" value="{{ env.get('GMAIL_APP_PASSWORD','') }}"
+               placeholder="16 characters (spaces are removed)">
+      </div>
+
+      <h3 style="margin-top:20px;font-size:14px">Free job APIs (optional but recommended)</h3>
+      <p class="muted" style="font-size:12px;margin:0 0 12px">
+        Both take about a minute to sign up for and dramatically improve coverage.
+      </p>
+      <div class="row">
+        <div class="field">
+          <label for="ai">Adzuna App ID
+            <a href="https://developer.adzuna.com/" target="_blank" rel="noopener" style="font-weight:400">↗</a>
+          </label>
+          <input id="ai" type="text" value="{{ env.get('ADZUNA_APP_ID','') }}">
+        </div>
+        <div class="field">
+          <label for="ak">Adzuna App Key</label>
+          <input id="ak" type="text" value="{{ env.get('ADZUNA_APP_KEY','') }}">
+        </div>
+      </div>
+      <div class="field">
+        <label for="jk">Jooble API Key
+          <a href="https://jooble.org/api/about" target="_blank" rel="noopener" style="font-weight:400">↗</a>
+        </label>
+        <input id="jk" type="text" value="{{ env.get('JOOBLE_KEY','') }}">
+      </div>
+
+      <details style="margin-top:12px">
+        <summary class="muted">Show extras (Groq for LLM rationales, SerpApi for Google Jobs)</summary>
+        <div style="padding-top:12px">
+          <div class="field">
+            <label for="gk">Groq API Key
+              <a href="https://console.groq.com" target="_blank" rel="noopener" style="font-weight:400">↗</a>
+            </label>
+            <input id="gk" type="text" value="{{ env.get('GROQ_API_KEY','') }}">
+          </div>
+          <div class="field">
+            <label for="sk">SerpApi Key
+              <a href="https://serpapi.com/" target="_blank" rel="noopener" style="font-weight:400">↗</a>
+            </label>
+            <input id="sk" type="text" value="{{ env.get('SERPAPI_KEY','') }}">
+          </div>
+        </div>
+      </details>
+
+      <div class="wizfooter">
+        <div class="msg" id="c_msg"></div>
+        <div>
+          <a class="btn" href="/setup?step=resume">← Back</a>
+          <button class="btn primary" id="c_save">Finish setup →</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      document.getElementById('c_save').onclick = async () => {
+        const payload = {
+          GMAIL_USER: document.getElementById('gu').value,
+          GMAIL_APP_PASSWORD: document.getElementById('gp').value,
+          TO_EMAIL: document.getElementById('to').value,
+          ADZUNA_APP_ID: document.getElementById('ai').value,
+          ADZUNA_APP_KEY: document.getElementById('ak').value,
+          JOOBLE_KEY: document.getElementById('jk').value,
+          GROQ_API_KEY: document.getElementById('gk').value,
+          SERPAPI_KEY: document.getElementById('sk').value,
+        };
+        const msg = document.getElementById('c_msg');
+        msg.textContent = '';
+        const r = await fetch('/api/setup/credentials', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify(payload)
+        });
+        const j = await r.json();
+        if (j.ok) { location.href = '/setup?step=done'; }
+        else { msg.textContent = j.error || 'Something went wrong'; }
+      };
+    </script>
+
+  {% elif step == 'done' %}
+    <div class="card" style="text-align:center;padding:40px 20px">
+      <h2 style="font-size:22px">You're all set 🎉</h2>
+      <p class="step-desc">Setup is complete. You can now run your first scout —
+        it'll take 30–90 seconds on the first run (the embedding model is cached
+        after that).</p>
+      <p style="margin-top:20px">
+        <a href="/" class="btn primary">Open Dashboard →</a>
+        <a href="/settings" class="btn">Fine-tune matching</a>
+      </p>
+      <p class="muted" style="margin-top:20px;font-size:12px">
+        Tip: the in-process scheduler will run every 6 hours while <code>app.py</code>
+        is open. Or install the OS scheduler with
+        <code>python setup.py install-scheduler</code>.
+      </p>
+    </div>
+  {% endif %}
+</div>
+
+{% endblock %}

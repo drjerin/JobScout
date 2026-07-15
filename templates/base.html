@@ -79,14 +79,17 @@
 </head>
 <body>
 <header class="topbar">
-  <div class="brand">📮 {{ profile.name }}
-    {% if profile.role %}<span class="sub">{{ profile.role }}</span>{% endif %}
+  <div class="brand">📮 {{ (profile.name if profile and profile.name else 'Job Scout') }}
+    {% if profile and profile.role %}<span class="sub">{{ profile.role }}</span>{% endif %}
   </div>
   <nav>
     <a href="{{ url_for('dashboard') }}" class="{{ 'active' if request.endpoint=='dashboard' else '' }}">Dashboard</a>
     <a href="{{ url_for('settings') }}" class="{{ 'active' if request.endpoint=='settings' else '' }}">Settings</a>
-    <button id="runBtn" class="btn primary">↻ Run now</button>
-    <span id="runStatus" class="runstatus"></span>
+    <a href="{{ url_for('setup') }}" class="{{ 'active' if request.endpoint=='setup' else '' }}">Setup</a>
+    {% if request.endpoint != 'setup' %}
+      <button id="runBtn" class="btn primary">↻ Run now</button>
+      <span id="runStatus" class="runstatus"></span>
+    {% endif %}
   </nav>
 </header>
 <main>{% block content %}{% endblock %}</main>

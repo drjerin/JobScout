@@ -4,10 +4,14 @@
 Every run:  fetch -> dedupe -> filter -> embed -> score -> split by country ->
 store -> optional rationale -> email one table per country -> remember.
 
-Usage:
+Usage (CLI):
     python run.py             # fetch, score, store, and EMAIL the digest
     python run.py --no-email  # same but skip the email (used by the web UI)
     python run.py --dry-run   # fetch/score only; write digest_preview.html
+
+Programmatic:
+    from run import run_once
+    summary = run_once(dry_run=False, no_email=True)
 """
 from __future__ import annotations
 
@@ -137,14 +141,13 @@ def split_and_rank(jobs: list[Job], country: str, limit: int) -> list[Job]:
 
 
 # ── main ─────────────────────────────────────────────────────────────────────
-def main() -> None:
-    parser = argparse.ArgumentParser(description="Job Scout")
-    parser.add_argument("--dry-run", action="store_true",
-                        help="fetch/score only; write digest_preview.html, no DB or email")
-    parser.add_argument("--no-email", action="store_true",
-                        help="fetch, score and store to the DB, but do not send email")
-    args = parser.parse_args()
+def run_once(dry_run: bool = False, no_email: bool = False) -> dict:
+    """Run one pipeline iteration and return a summary dict.
 
+    The scheduler, the web UI's "Run now" button and the CLI all call this.
+    Errors inside sources are caught by ``gather()``; unexpected errors here
+    propagate to the caller, which is expected to log them.
+    """
     load_dotenv(ROOT / ".env")
     cfg = load_yaml("config.yaml")
     req = load_yaml("matching.yaml")
@@ -154,9 +157,9 @@ def main() -> None:
     profile_name = profile.get("name") or "Job Scout"
     role = profile.get("role") or "role"
 
-    seen = set() if args.dry_run else store.seen_ids()
+    seen = set() if dry_run else store.seen_ids()
 
-    mode = "DRY-RUN" if args.dry_run else ("NO-EMAIL" if args.no_email else "LIVE")
+    mode = "DRY-RUN" if dry_run else ("NO-EMAIL" if no_email else "LIVE")
     log.info("starting %s at %s", mode, datetime.now().strftime("%Y-%m-%d %H:%M"))
 
     raw = gather(cfg)
@@ -188,18 +191,28 @@ def main() -> None:
         "subtitle": f"{total} new matches • {now}",
     }
 
-    if args.dry_run:
+    summary = {
+        "mode": mode,
+        "raw": len(raw),
+        "unique": len(unique),
+        "scored": len(scored),
+        "total_top": total,
+        "per_country": per_country_counts,
+        "emailed": False,
+    }
+
+    if dry_run:
         html = email_report.render_html(sections, meta)
         email_report.write_preview(html, str(ROOT / "digest_preview.html"))
         log.info("DRY-RUN complete — %s (no DB writes)", per_country_counts)
-        return
+        return summary
 
     store.upsert_jobs(scored)
     store.prune(days=30)
 
-    if args.no_email:
+    if no_email:
         log.info("NO-EMAIL complete — stored %d matches to the DB", len(scored))
-        return
+        return summary
 
     if total:
         html = email_report.render_html(sections, meta)
@@ -209,9 +222,21 @@ def main() -> None:
         for _name, _label, top in sections_data:
             emailed_ids.extend(j.id for j in top)
         store.mark_emailed(emailed_ids)
+        summary["emailed"] = True
         log.info("LIVE complete — emailed %s", per_country_counts)
     else:
         log.info("nothing new to email this run.")
+    return summary
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Job Scout")
+    parser.add_argument("--dry-run", action="store_true",
+                        help="fetch/score only; write digest_preview.html, no DB or email")
+    parser.add_argument("--no-email", action="store_true",
+                        help="fetch, score and store to the DB, but do not send email")
+    args = parser.parse_args()
+    run_once(dry_run=args.dry_run, no_email=args.no_email)
 
 
 if __name__ == "__main__":

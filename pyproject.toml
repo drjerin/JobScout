@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "job-scout"
-version = "1.0.0"
+version = "1.1.0"
 description = "Local job aggregator: fetch from multiple boards, score against your resume, email a digest."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -19,12 +19,21 @@ dependencies = [
     "python-dotenv>=1.0.0",
     "numpy>=1.24.0",
     "Flask>=3.0.0",
+    "APScheduler>=3.10.0",
 ]
 
 [project.optional-dependencies]
 pdf = ["pypdf>=4.0.0"]
 docx = ["python-docx>=1.1.0"]
+tray = ["pystray>=0.19.0", "Pillow>=10.0.0"]
 dev = ["pytest>=8.0.0", "ruff>=0.5.0"]
+# Convenience: install everything with `pip install -e .[all]`
+all = [
+    "pypdf>=4.0.0",
+    "python-docx>=1.1.0",
+    "pystray>=0.19.0",
+    "Pillow>=10.0.0",
+]
 
 [tool.ruff]
 line-length = 100

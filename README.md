@@ -32,29 +32,25 @@ You need **Python 3.10+**. Check with `python3 --version` (macOS/Linux) or
 `python --version` (Windows).
 
 ```bash
-python setup.py install
+python setup.py install       # creates .venv and installs deps
+python app.py                 # opens on http://127.0.0.1:8000
 ```
 
-That creates a virtualenv, installs dependencies, copies the `.env` and
-`resume.txt` templates, and creates the `state/` directory.
+Open the URL — the first time, you're routed through a 4-step setup wizard:
 
-Then:
+1. **Profile** — your name and the role you want to search for.
+2. **Locations** — pick countries + cities from a curated list (or type your own).
+3. **Resume** — drag-drop a `.pdf`, `.docx`, or `.txt`.
+4. **Credentials** — Gmail (required for sending the digest) + optional Adzuna
+   and Jooble keys.
 
-1. **Edit `.env`** with your email + API keys (see below).
-2. **Drop your resume** into the project root — `resume.txt`, `resume.pdf`,
-   or `resume.docx` all work (the last two need `pip install pypdf` /
-   `pip install python-docx`).
-3. **Tune the search** by editing `config.yaml` (search terms, countries,
-   thresholds) and `matching.yaml` (target titles, seniority band, must-have
-   skills, dealbreakers).
+That's it. Hit **Run now** on the dashboard to trigger the first scan; the
+in-process scheduler will keep running every 6 hours while `app.py` is up.
 
-Try it:
+Prefer the CLI? Edit `config.yaml`, `matching.yaml`, `.env` and your resume file
+directly, then:
 
 ```bash
-# Activate the venv first (once per shell):
-#   macOS/Linux :   source .venv/bin/activate
-#   Windows     :   .venv\Scripts\activate
-
 python run.py --dry-run   # writes digest_preview.html — no email
 python run.py             # sends the real digest
 ```
@@ -70,7 +66,9 @@ A local dashboard to browse everything that doesn't fit in an email — all
 matches, with filtering, search, per-country counts, and history.
 
 ```bash
-python app.py
+python app.py                 # normal
+python app.py --tray          # + system-tray icon (needs `install-tray`)
+python app.py --no-scheduler  # skip the in-process 6-hourly job
 ```
 
 Then open **http://127.0.0.1:8000**.
@@ -81,7 +79,7 @@ Then open **http://127.0.0.1:8000**.
   `state/jobs.db`).
 - **↻ Run now** — trigger a fresh scan on demand and see the log tail inline.
 - **Settings** tab — edit `config.yaml` and `matching.yaml` in the browser
-  (YAML-validated before saving).
+  (YAML-validated before saving), or re-run the wizard any time.
 
 Override the bind address with `JOBSCOUT_HOST`/`JOBSCOUT_PORT` env vars, or
 `web.host`/`web.port` in `config.yaml`.
@@ -90,11 +88,28 @@ The scheduled email and the UI share the same SQLite database, so anything
 the scout finds shows up in both. Leave `app.py` running (or start it when
 you want to browse).
 
+### System tray icon (optional)
+
+```bash
+python setup.py install-tray        # installs pystray + Pillow
+python setup.py install-autostart   # run app.py --tray at login (all 3 OSes)
+python app.py --tray                # start now
+```
+
+The tray icon exposes **Open Dashboard**, **Run now**, **Pause/Resume schedule**,
+and **Quit**.
+
 ---
 
 ## Run it every 6 hours automatically
 
-The installer handles this on all three platforms:
+Two options — pick whichever fits your workflow:
+
+**In-process scheduler (default)** — comes on when you run `python app.py`.
+No extra setup, but only runs while the UI process is alive. Configurable
+via the `scheduler:` block in `config.yaml`.
+
+**OS scheduler** — runs on a fixed schedule even when nothing is open:
 
 ```bash
 python setup.py install-scheduler       # macOS launchd / Windows Task Scheduler / Linux cron
@@ -108,6 +123,8 @@ catch up on the next one.
 ---
 
 ## .env keys
+
+The setup wizard writes these for you, but you can edit `.env` directly:
 
 - **Email (required)** — `GMAIL_USER`, `GMAIL_APP_PASSWORD`, `TO_EMAIL`.
   On the Google account: enable **2-Step Verification**, then create an
@@ -157,9 +174,12 @@ match% = resume_weight · resume_similarity%  +  matching_weight · checklist%
 ## Project map
 ```
 run.py            orchestrator (fetch → dedupe → filter → score → split → store → email)
-app.py            local web dashboard (Flask): browse/filter, run-now, edit settings
-setup.py          cross-platform installer + scheduler helper
+                  exposes run_once() for the UI / scheduler to call in-process
+app.py            Flask UI: dashboard, /setup wizard, resume upload, APScheduler
+setup.py          cross-platform installer, scheduler + tray helper
 store.py          SQLite store shared by run.py + app.py (dedupe memory + history)
+tray.py           optional system-tray icon (pystray)
+locations.py      curated country + city catalog for the wizard
 config.yaml       profile, search terms, countries, thresholds, source toggles, web bind
 matching.yaml     editable checklist + dealbreakers
 resume.txt        your resume (plain text) — pdf/docx also supported
@@ -172,7 +192,7 @@ rationale.py      optional Groq "why it fits" line
 resume_loader.py  read resume from .txt / .pdf / .docx
 http_client.py    shared requests session with retry/backoff
 logs.py           rotating file + stdout logging
-templates/        web UI pages (base / dashboard / settings)
+templates/        web UI pages (base / dashboard / settings / setup)
 scheduler/        cross-platform scheduling (launchd / Task Scheduler / cron)
 state/            SQLite DB + rotated logs (gitignored)
 tests/            pytest suite (score / store / sources)

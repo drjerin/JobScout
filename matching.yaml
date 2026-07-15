@@ -1,56 +1,17 @@
-# ── Matching checklist ─────────────────────────────────────────────────────
-# This is the transparent "checklist" half of the match score. Edit anytime.
-# Each job is scored against this and the email shows ✅ / ⚠️ notes per row.
-
-# Target job titles (the job's title is checked for these, case-insensitive).
 target_titles:
-  - "HR Business Partner"
-  - "HRBP"
-  - "People Partner"
-  - "HR Manager"
-  - "Human Resources Business Partner"
-
-# Experience / seniority band in years (read from the job text when stated).
+- Software Engineer
 seniority:
-  min_years: 4
-  max_years: 12
-
-# Skills/keywords you WANT to see in the job (each present = ✅, adds to score).
-must_have_skills:
-  - "employee relations"
-  - "stakeholder"
-  - "performance management"
-  - "talent"
-  - "business partner"
-
-# Nice-to-haves (bonus points, not required).
-nice_to_have_skills:
-  - "compensation"
-  - "org design"
-  - "workday"
-  - "succession planning"
-  - "change management"
-
-# Preferred annual pay floor. Leave 0 to ignore. Best-effort, currency-agnostic.
+  min_years: 0
+  max_years: 30
+must_have_skills: []
+nice_to_have_skills: []
 salary_floor: 0
-
-# ── Dealbreakers (these DROP a job entirely) ───────────────────────────────
-# List every country you want to allow. Leave empty to allow all.
 allowed_countries:
-  - "India"
-  - "Qatar"
-
-# Drop jobs whose TITLE contains any of these (case-insensitive).
+- United States
+- Germany
 exclude_titles:
-  - "intern"
-  - "recruiter"
-  - "talent acquisition"
-  - "recruitment"
-  - "trainee"
-
-# Drop jobs whose text contains any of these keywords.
+- intern
+- trainee
 exclude_keywords:
-  - "unpaid"
-
-# Drop jobs from these companies (exact-ish, case-insensitive contains).
+- unpaid
 exclude_companies: []

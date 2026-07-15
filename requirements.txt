@@ -6,6 +6,9 @@ Jinja2>=3.1.0
 python-dotenv>=1.0.0
 numpy>=1.24.0
 Flask>=3.0.0
-# Optional (uncomment or install on demand):
+APScheduler>=3.10.0
+# Optional (installed automatically by setup.py; uncomment if you install manually):
 # pypdf>=4.0.0
 # python-docx>=1.1.0
+# pystray>=0.19.0
+# Pillow>=10.0.0
